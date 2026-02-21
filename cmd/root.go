@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -12,10 +13,11 @@ import (
 )
 
 var (
-	copy      bool
-	estimate  bool
-	verbose   bool
-	ignorePat string
+	copy       bool
+	estimate   bool
+	verbose    bool
+	ignorePat  string
+	outputFlag string
 )
 
 var rootCmd = &cobra.Command{
@@ -63,7 +65,18 @@ a single Markdown-formatted string for easy pasting into LLMs.`,
 		}
 
 		// Output the result
-		if copy {
+		if outputFlag != "" {
+			// Write to file
+			filePath, err := resolveOutputPath(outputFlag, targetPath)
+			if err != nil {
+				return err
+			}
+
+			if err := os.WriteFile(filePath, []byte(output), 0644); err != nil {
+				return fmt.Errorf("failed to write output file: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "Done! Context written to %s\n", filePath)
+		} else if copy {
 			if err := clipboard.WriteAll(output); err != nil {
 				fmt.Fprintf(os.Stderr, "⚠ Warning: Failed to copy to clipboard (%v). Printing to terminal instead.\n", err)
 				fmt.Print(output)
@@ -92,6 +105,42 @@ func formatWithCommas(num int) string {
 	}
 
 	return result.String()
+}
+
+// resolveOutputPath determines the final output file path
+// If outputPath is empty, returns empty string
+// If outputPath is a directory, returns path/context.txt
+// Otherwise returns the outputPath as-is
+func resolveOutputPath(outputPath string, targetPath string) (string, error) {
+	if outputPath == "" {
+		return "", nil
+	}
+
+	// Check if it's a directory
+	info, err := os.Stat(outputPath)
+	if err == nil && info.IsDir() {
+		return filepath.Join(outputPath, "context.txt"), nil
+	}
+
+	// If the path doesn't exist, treat it as a file path
+	if os.IsNotExist(err) {
+		// Ensure the directory exists
+		dir := filepath.Dir(outputPath)
+		if dir != "." && dir != "" {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return "", fmt.Errorf("failed to create output directory: %w", err)
+			}
+		}
+		return outputPath, nil
+	}
+
+	// If there's another error, return it
+	if err != nil {
+		return "", fmt.Errorf("failed to check output path: %w", err)
+	}
+
+	// Path exists and is not a directory (it's a file)
+	return outputPath, nil
 }
 
 // formatTokenEstimate returns a professionally formatted token estimate box
@@ -123,6 +172,7 @@ func formatTokenEstimate(tokenCount int) string {
 
 func init() {
 	rootCmd.Flags().BoolVarP(&copy, "copy", "c", false, "Copy output to system clipboard")
+	rootCmd.Flags().StringVarP(&outputFlag, "output", "o", "", "Write output to a file (defaults to context.txt in the target directory if a directory is provided)")
 	rootCmd.Flags().BoolVar(&estimate, "estimate", false, "Calculate token count and display to stderr")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show which files are being packed")
 	rootCmd.Flags().StringVar(&ignorePat, "ignore-pattern", "", "Add temporary ignore patterns (e.g., *.test.go)")
