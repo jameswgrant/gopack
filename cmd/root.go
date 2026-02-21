@@ -70,7 +70,8 @@ a single Markdown-formatted string for easy pasting into LLMs.`,
 			} else {
 				fmt.Fprintln(os.Stderr, "Done! Context packed to clipboard.")
 			}
-		} else {
+		} else if !estimate || verbose {
+			// Print output unless --estimate was used alone (without --verbose)
 			fmt.Print(output)
 		}
 
