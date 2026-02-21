@@ -71,6 +71,20 @@ If clipboard operations fail, the tool automatically falls back to printing the 
 ⚠ Warning: Failed to copy to clipboard (...). Printing to terminal instead.
 ```
 
+#### `-o, --output`
+Write the aggregated content to a file instead of printing to the terminal.
+
+```bash
+./bin/gopack ./src --output context.txt
+# Output: Done! Context written to context.txt
+
+# Or specify a directory (creates context.txt in that directory)
+./bin/gopack ./src --output ./output_dir
+# Output: Done! Context written to ./output_dir/context.txt
+```
+
+If the directory doesn't exist, it will be created automatically. This flag takes priority over `--copy` if both are specified.
+
 #### `--estimate`
 Calculate and display the estimated token count using a professional formatted box.
 
@@ -115,22 +129,37 @@ Add temporary ignore patterns (in addition to `.gitignore` rules) using glob syn
 
 # Copy to clipboard with all diagnostic output
 ./bin/gopack ./src --copy --verbose --estimate
+
+# Write to a file with token estimate
+./bin/gopack ./src --output ./results/context.txt --estimate
+
+# Write to a directory (creates context.txt inside)
+./bin/gopack ./src --output ./results --verbose --estimate
 ```
 
 ### Output to Files
 
-Since content goes to stdout by default, you can redirect it:
+You can use the `--output` flag to write directly to a file:
 
 ```bash
-# Save to a file
+# Write to a specific file
+./bin/gopack ./src --output context.txt
+
+# Write to a directory (creates context.txt in the directory)
+./bin/gopack ./src --output ./output_dir
+
+# With token estimation
+./bin/gopack ./src --output results.txt --estimate
+```
+
+Or use traditional shell redirection:
+
+```bash
+# Redirect stdout to a file
 ./bin/gopack ./src > context.txt
 
 # Send through a pipe
 ./bin/gopack ./src | head -100
-
-# Copy to clipboard AND save to file
-./bin/gopack ./src --copy | tee backup.txt
-# (Note: --copy suppresses stdout, use in reverse: tee then pipe to clipboard)
 ```
 
 ## How It Works
@@ -198,6 +227,19 @@ This will:
 - Respect `.gitignore` rules
 - Additionally exclude `.test.go` and `.log` files
 - Aggregate remaining files
+
+### Example 4: Save to File for Later Review
+
+```bash
+./bin/gopack ./myproject --output ./archive/project-snapshot.txt --verbose --estimate
+```
+
+This will:
+- Show all files being included
+- Display token estimate
+- Create necessary directories if they don't exist
+- Save the complete context to `./archive/project-snapshot.txt`
+- Confirm success with file path
 
 ## Troubleshooting
 
