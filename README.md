@@ -1,4 +1,4 @@
-# GoContextPacker
+# Go Context Packer
 
 A CLI tool that intelligently aggregates your project files into a single, formatted string perfect for sharing with Large Language Models (LLMs). It respects `.gitignore` rules, filters out binary files, and estimates token counts.
 
